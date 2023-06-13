@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	mockdb "github.com/rafaelvitoadrian/simplebank2/db/mock"
@@ -98,8 +99,11 @@ func TestGetAccountAPI(t *testing.T) {
 
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
-
-			server := NewServer(store)
+			config := utils.Config{
+				TokenSymetricKey:    utils.RandomString(32),
+				AccessDurationToken: time.Minute,
+			}
+			server, err := NewServer(config, store)
 			recorder := httptest.NewRecorder()
 
 			url := fmt.Sprintf("/accounts/%d", tc.accountID)
