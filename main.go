@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"log"
 	"net"
+	"net/http"
 
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	_ "github.com/lib/pq"
 	"github.com/rafaelvitoadrian/simplebank2/api"
 	db "github.com/rafaelvitoadrian/simplebank2/db/sqlc"
@@ -13,6 +16,7 @@ import (
 	"github.com/rafaelvitoadrian/simplebank2/utils"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 func main() {
@@ -27,8 +31,9 @@ func main() {
 	}
 
 	store := db.NewStore(conn)
-	// runGRPCServer(config, store)
-	runGinServer(config, store)
+	go runGatewayServer(config, store)
+	runGRPCServer(config, store)
+	// runGinServer(config, store)
 }
 
 func runGRPCServer(config utils.Config, store db.Store) {
@@ -51,6 +56,48 @@ func runGRPCServer(config utils.Config, store db.Store) {
 	err = grpcServer.Serve(listener)
 	if err != nil {
 		log.Fatal("Cannot crreate gRPC server : ", err)
+	}
+
+}
+
+func runGatewayServer(config utils.Config, store db.Store) {
+	server, err := gapi.NewServer(config, store)
+	if err != nil {
+		log.Fatal("cannot create server : ", err)
+	}
+
+	optionJSON := runtime.WithMarshalerOption(runtime.MIMEWildcard, &runtime.JSONPb{
+		MarshalOptions: protojson.MarshalOptions{
+			UseProtoNames: true,
+		},
+		UnmarshalOptions: protojson.UnmarshalOptions{
+			DiscardUnknown: true,
+		},
+	})
+
+	grpcMux := runtime.NewServeMux(optionJSON)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	err = pb.RegisterSimpleBankHandlerServer(ctx, grpcMux, server)
+	if err != nil {
+		log.Fatal("cannot Create Handler Seerver  ", err)
+	}
+
+	mux := http.NewServeMux()
+	mux.Handle("/", grpcMux)
+
+	listener, err := net.Listen("tcp", config.HTTPServerAddress)
+	if err != nil {
+		log.Fatal("cannot create listener : ", err)
+	}
+
+	log.Printf("Start Gateway Server at %s", listener.Addr().String())
+
+	err = http.Serve(listener, mux)
+	if err != nil {
+		log.Fatal("Cannot Create Gateway Server : ", err)
 	}
 
 }
