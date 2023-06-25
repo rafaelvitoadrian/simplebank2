@@ -28,7 +28,6 @@ func (server *Server) renewAccessToken(ctx *gin.Context) {
 
 	refreshPayload, err := server.tokenMaker.VerifyToken(req.RefreshToken)
 	if err != nil {
-		// errDeb := fmt.Errorf("ANJING")
 		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
 		return
 	}
