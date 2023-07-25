@@ -50,4 +50,7 @@ evans:
 exportprotoc:
 	export PATH="$PATH:$(go env GOPATH)/bin"
 
-.PHONY:createdb dropdb migrateup migrateup1 postgres migratedown migratedown1 sqlc test server mock proto evans exportprotoc
+redis:
+	docker run --name redis -p 6379:6379 -d redis:7-alpine
+
+.PHONY:createdb dropdb migrateup migrateup1 postgres migratedown migratedown1 sqlc test server mock proto evans exportprotoc redis
