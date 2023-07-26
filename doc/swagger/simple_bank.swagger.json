@@ -251,7 +251,7 @@
         "fullName": {
           "type": "string"
         },
-        "password": {
+        "email": {
           "type": "string"
         },
         "passwordChangedAt": {
