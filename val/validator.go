@@ -52,5 +52,16 @@ func ValidateEmail(value string) error {
 	}
 
 	return nil
+}
 
+func ValidateEmailId(value int64) error {
+	if value <= 0 {
+		return fmt.Errorf("Harus bernilai lebih dari 0")
+	}
+
+	return nil
+}
+
+func ValdiateSecretCode(value string) error {
+	return ValdiateString(value, 32, 128)
 }
